@@ -55,3 +55,21 @@ def get_me(current_user: dict = Depends(get_current_user)):
         "name": current_user["name"],
         "email": current_user["email"]
     }
+
+@router.delete("/me", status_code=204)
+def delete_account(current_user: dict = Depends(get_current_user)):
+    """Delete the logged-in user's account and all their data."""
+    from database import reports_collection, chats_collection
+    
+    user_id = str(current_user["_id"])
+    
+    # Delete all reports
+    reports_collection.delete_many({"user_id": user_id})
+    
+    # Delete all chats
+    chats_collection.delete_many({"user_id": user_id})
+    
+    # Delete the user account
+    users_collection.delete_one({"_id": current_user["_id"]})
+    
+    return None

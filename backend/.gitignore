@@ -6,3 +6,4 @@ data/chroma_db/
 test_*.py
 *.png
 *.pdf
+check_trends.py

@@ -13,6 +13,7 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 
 class ChatMessage(BaseModel):
     message: str
+    mode: str = "detailed"  # simple | detailed | clinical
 
 
 def get_report_and_verify_owner(report_id: str, user_id: str) -> dict:
@@ -71,7 +72,8 @@ def send_message(
         user_query=chat_input.message,
         analysis_data=analysis_data,
         relevant_chunks=relevant_chunks,
-        conversation_history=conversation_history
+        conversation_history=conversation_history,
+        mode=chat_input.mode
     )
     
     # Save both messages to MongoDB
