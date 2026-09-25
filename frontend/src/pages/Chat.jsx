@@ -2,6 +2,140 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../api/axios";
+import {
+  Button,
+  Card,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  StatusBadge,
+} from "../components/ui";
+
+function ReportSummary({ report, onReanalyze, onExportPdf, reanalyzing, headingId }) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="border-b border-mq-border p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-mq-muted">
+              Patient summary
+            </p>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-mq-ink">
+              {report.patient_info?.name || "Unknown patient"}
+            </h2>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onReanalyze}
+              disabled={reanalyzing}
+              title="Re-run AI analysis on this report"
+            >
+              {reanalyzing ? "Re-analyzing..." : "Re-analyze"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onExportPdf}
+              title="Download PDF summary"
+            >
+              Export PDF
+            </Button>
+          </div>
+        </div>
+
+        <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-medium text-mq-muted">Age</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-mq-ink">
+              {report.patient_info?.age || "Unknown"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-mq-muted">Gender</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-mq-ink">
+              {report.patient_info?.gender || "Unknown"}
+            </dd>
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <dt className="text-xs font-medium text-mq-muted">Results</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-mq-ink">
+              {report.all_results?.length || 0} tests
+            </dd>
+          </div>
+        </dl>
+
+        {report.summary && (
+          <p className="mb-0 mt-4 text-sm leading-6 text-mq-muted">{report.summary}</p>
+        )}
+      </div>
+
+      <section aria-labelledby={headingId}>
+        <div className="flex items-center justify-between gap-3 border-b border-mq-border px-5 py-4 sm:px-6">
+          <h3 id={headingId} className="font-bold text-mq-ink">
+            Test results
+          </h3>
+          {report.abnormal_results?.length > 0 ? (
+            <StatusBadge status="warning">
+              {report.abnormal_results.length} flagged
+            </StatusBadge>
+          ) : (
+            <StatusBadge status="success">No flagged results</StatusBadge>
+          )}
+        </div>
+
+        {report.all_results?.length > 0 ? (
+          <div className="max-h-[36vh] divide-y divide-mq-border overflow-y-auto lg:max-h-[calc(100vh-25rem)]">
+            {report.all_results.map((test, index) => {
+              const isFlagged = test.status === "HIGH" || test.status === "LOW";
+              const badgeStatus = test.status === "NORMAL"
+                ? "success"
+                : isFlagged
+                  ? "warning"
+                  : "neutral";
+
+              return (
+                <div
+                  key={`${test.test_name}-${index}`}
+                  className={`px-5 py-3.5 sm:px-6 ${isFlagged ? "bg-amber-50/50" : "bg-white"}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-semibold text-mq-ink">
+                        {test.test_name}
+                      </p>
+                      {test.normal_range && (
+                        <p className="mt-1 text-xs text-mq-muted">
+                          Reference range: {test.normal_range}
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-bold tabular-nums text-mq-ink">
+                        {test.value}
+                        {test.unit && <span className="ml-1 font-medium text-mq-muted">{test.unit}</span>}
+                      </p>
+                      <StatusBadge status={badgeStatus} className="mt-1">
+                        {test.status || "Unknown"}
+                      </StatusBadge>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-4">
+            <EmptyState title="No test results available">
+              This report does not contain any extracted test values.
+            </EmptyState>
+          </div>
+        )}
+      </section>
+    </Card>
+  );
+}
 
 export default function Chat() {
   const { reportId } = useParams();
@@ -121,22 +255,24 @@ export default function Chat() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-mq-canvas">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <p className="text-gray-500">Loading report...</p>
-        </div>
+        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+          <LoadingState>Loading report and conversation...</LoadingState>
+        </main>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-mq-canvas">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <p className="text-red-500">{error}</p>
-        </div>
+        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-900" role="alert">
+            {error}
+          </div>
+        </main>
       </div>
     );
   }
@@ -148,149 +284,168 @@ export default function Chat() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-mq-canvas">
       <Navbar />
 
-      <div className="flex flex-1 max-w-6xl mx-auto w-full px-4 py-6 gap-6">
-        <div className="w-72 bg-white rounded-lg shadow p-5 h-fit">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="font-semibold">👤 Patient</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={handleReanalyze}
-                disabled={reanalyzing}
-                className="text-xs text-blue-600 hover:underline disabled:opacity-50"
-                title="Re-run AI analysis on this report"
-              >
-                {reanalyzing ? "..." : "↻ Re-analyze"}
-              </button>
-              <button
-                onClick={handleExportPdf}
-                className="text-xs text-blue-600 hover:underline"
-                title="Download PDF summary"
-              >
-                ⬇ PDF
-              </button>
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <PageHeader
+          title="Report conversation"
+          description="Review the results and ask questions about this report."
+        />
+
+        <div className="mb-4 lg:hidden">
+          <details className="group overflow-hidden rounded-2xl border border-mq-border bg-white shadow-sm">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-mq-ink focus-visible:outline-offset-[-3px] [&::-webkit-details-marker]:hidden">
+              <span>Report results and patient details</span>
+              <span className="text-sm font-medium text-mq-primary group-open:hidden">Show</span>
+              <span className="hidden text-sm font-medium text-mq-primary group-open:inline">Hide</span>
+            </summary>
+            <div className="border-t border-mq-border p-3 sm:p-4">
+              <ReportSummary
+                report={report}
+                onReanalyze={handleReanalyze}
+                onExportPdf={handleExportPdf}
+                reanalyzing={reanalyzing}
+                headingId="mobile-test-results-heading"
+              />
             </div>
-          </div>
-          <p className="text-sm text-gray-600">
-            Name: {report.patient_info?.name || "Unknown"}
-          </p>
-          <p className="text-sm text-gray-600">
-            Age: {report.patient_info?.age || "Unknown"}
-          </p>
-          <p className="text-sm text-gray-600 mb-4">
-            Gender: {report.patient_info?.gender || "Unknown"}
-          </p>
-
-          <hr className="my-3" />
-
-          <h2 className="font-semibold mb-3">📊 Test Results</h2>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {report.all_results?.map((test, i) => {
-              const icon =
-                test.status === "HIGH" ? "🔴" :
-                test.status === "LOW" ? "🟠" :
-                test.status === "NORMAL" ? "🟢" : "⚪";
-              return (
-                <div key={i} className="text-sm border-b pb-2">
-                  <p className="font-medium">{icon} {test.test_name}</p>
-                  <p className="text-gray-500">
-                    {test.value} {test.unit} — {test.status}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          <hr className="my-3" />
-
-          {report.abnormal_results?.length > 0 ? (
-            <p className="text-sm bg-orange-50 text-orange-700 p-2 rounded">
-              ⚠️ {report.abnormal_results.length} of {report.all_results.length} values need attention
-            </p>
-          ) : (
-            <p className="text-sm bg-green-50 text-green-700 p-2 rounded">
-              ✅ All values are normal
-            </p>
-          )}
+          </details>
         </div>
 
-        <div className="flex-1 bg-white rounded-lg shadow flex flex-col">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h1 className="font-semibold">💬 Chat about this report</h1>
-
-            <div className="flex bg-gray-100 rounded-md p-0.5">
-              {modes.map((m) => (
-                <button
-                  key={m.key}
-                  onClick={() => setMode(m.key)}
-                  className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
-                    mode === m.key
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[500px]">
-            {messages.length === 0 && (
-              <p className="text-gray-400 text-sm text-center mt-8">
-                Ask me anything about this report — e.g. "Is my hemoglobin normal?"
-              </p>
-            )}
-
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-md px-4 py-2 rounded-lg text-sm whitespace-pre-wrap ${
-                    msg.role === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-
-            {sending && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-lg text-sm">
-                  Thinking...
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <form onSubmit={handleSend} className="p-4 border-t flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask me anything about your report..."
-              disabled={sending}
-              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(17rem,0.78fr)_minmax(0,1.6fr)] lg:items-start">
+          <aside className="hidden min-w-0 lg:block" aria-label="Report results">
+            <ReportSummary
+              report={report}
+              onReanalyze={handleReanalyze}
+              onExportPdf={handleExportPdf}
+              reanalyzing={reanalyzing}
+              headingId="desktop-test-results-heading"
             />
-            <button
-              type="submit"
-              disabled={sending || !input.trim()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          </aside>
+
+          <section className="flex min-h-[70vh] min-w-0 flex-col overflow-hidden rounded-2xl border border-mq-border bg-white shadow-sm lg:h-[calc(100vh-11rem)] lg:min-h-[36rem]">
+            <header className="border-b border-mq-border px-4 py-4 sm:px-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-mq-primary">
+                    MediQuery assistant
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold tracking-tight text-mq-ink">
+                    Chat about this report
+                  </h2>
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold text-mq-muted">Explanation style</p>
+                  <div className="grid grid-cols-3 rounded-xl border border-mq-border bg-slate-50 p-1" role="group" aria-label="Explanation style">
+                    {modes.map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setMode(m.key)}
+                        aria-pressed={mode === m.key}
+                        className={`min-h-10 rounded-lg px-2.5 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
+                          mode === m.key
+                            ? "bg-white text-mq-primary shadow-sm ring-1 ring-mq-border"
+                            : "text-mq-muted hover:text-mq-ink"
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <div
+              className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6"
+              aria-label="Conversation messages"
+              aria-busy={sending}
             >
-              Send
-            </button>
-          </form>
+              {messages.length === 0 && (
+                <div className="mx-auto mt-8 max-w-md">
+                  <EmptyState title="Ask about your report">
+                    For example: “Is my hemoglobin normal?”
+                  </EmptyState>
+                </div>
+              )}
+
+              {messages.map((msg, i) => {
+                const isUser = msg.role === "user";
+                const isErrorMessage = !isUser && msg.content === "Sorry, I encountered an error. Please try again.";
+
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-end gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}
+                  >
+                    {!isUser && (
+                      <span className="mb-1 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-mq-primary/10 text-[0.65rem] font-extrabold text-mq-primary" aria-hidden="true">
+                        MQ
+                      </span>
+                    )}
+                    <div
+                      className={`max-w-[min(88%,42rem)] rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap sm:px-5 ${
+                        isUser
+                          ? "rounded-br-md bg-mq-primary text-white shadow-sm"
+                          : isErrorMessage
+                            ? "rounded-bl-md border border-red-200 bg-red-50 text-red-900"
+                            : "rounded-bl-md border border-mq-border bg-slate-50 text-mq-ink"
+                      }`}
+                      role={isErrorMessage ? "alert" : undefined}
+                    >
+                      {isErrorMessage && (
+                        <p className="mb-1 text-xs font-bold uppercase tracking-wide">Response unavailable</p>
+                      )}
+                      {msg.content}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {sending && (
+                <div className="flex items-end gap-2.5" role="status" aria-live="polite">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-mq-primary/10 text-[0.65rem] font-extrabold text-mq-primary" aria-hidden="true">
+                    MQ
+                  </span>
+                  <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-mq-border bg-slate-50 px-4 py-3 text-sm text-mq-muted">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-mq-primary/25 border-t-mq-primary" aria-hidden="true" />
+                    MediQuery is preparing a response...
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form onSubmit={handleSend} className="border-t border-mq-border bg-white p-3 sm:p-4">
+              <label htmlFor="chat-message" className="sr-only">Your message</label>
+              <div className="flex items-end gap-2 rounded-2xl border border-mq-border bg-slate-50 p-1.5 focus-within:border-mq-primary/60 focus-within:ring-2 focus-within:ring-mq-primary/15 sm:gap-3 sm:p-2">
+                <input
+                  id="chat-message"
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question about your report..."
+                  disabled={sending}
+                  className="min-h-11 min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-mq-ink outline-none placeholder:text-slate-500 focus:ring-0 disabled:opacity-60"
+                />
+                <Button
+                  type="submit"
+                  disabled={sending || !input.trim()}
+                  className="shrink-0"
+                >
+                  {sending ? "Sending..." : "Send"}
+                </Button>
+              </div>
+              <p className="mb-0 mt-2 px-1 text-xs text-mq-muted">
+                Ask about your report or related health questions.
+              </p>
+            </form>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

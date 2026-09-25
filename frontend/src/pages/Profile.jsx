@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
+import { Button, Card, PageHeader } from "../components/ui";
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -27,44 +28,74 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-mq-canvas">
       <Navbar />
 
-      <div className="max-w-md mx-auto px-6 py-12">
-        <div className="bg-white rounded-lg shadow p-8">
-          <h1 className="text-xl font-bold mb-6">Profile</h1>
+      <main className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 sm:py-10">
+        <PageHeader
+          title="Profile"
+          description="View your MediQuery account information and manage your account."
+        />
 
-          <div className="space-y-4 mb-8">
-            <div>
-              <label className="text-xs text-gray-400 uppercase">Name</label>
-              <p className="text-gray-800">{user?.name}</p>
+        <div className="space-y-5">
+          <Card className="overflow-hidden">
+            <header className="flex items-center gap-4 border-b border-mq-border bg-white p-5 sm:p-6">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-mq-primary/10 text-xs font-extrabold tracking-wide text-mq-primary" aria-hidden="true">
+                MQ
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-mq-primary">
+                  Account information
+                </p>
+                <p className="mt-1 text-sm text-mq-muted">
+                  Your profile details for this account.
+                </p>
+              </div>
+            </header>
+
+            <dl className="grid grid-cols-1 divide-y divide-mq-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+              <div className="min-w-0 p-5 sm:p-6">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mq-muted">
+                  Name
+                </dt>
+                <dd className="mt-2 break-words text-lg font-semibold text-mq-ink">
+                  {user?.name || "Not available"}
+                </dd>
+              </div>
+              <div className="min-w-0 p-5 sm:p-6">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mq-muted">
+                  Email
+                </dt>
+                <dd className="mt-2 break-all text-base font-semibold text-mq-ink">
+                  {user?.email || "Not available"}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card className="overflow-hidden border-red-200">
+            <div className="border-b border-red-100 bg-red-50/70 px-5 py-4 sm:px-6">
+              <h2 className="text-base font-bold text-red-900">Delete account</h2>
+              <p className="mt-1 text-sm leading-6 text-red-900/80">
+                Deleting your account will permanently remove all your reports and chat history. This action cannot be undone.
+              </p>
             </div>
-            <div>
-              <label className="text-xs text-gray-400 uppercase">Email</label>
-              <p className="text-gray-800">{user?.email}</p>
+            <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <p className="mb-0 text-sm text-mq-muted">
+                This action requires confirmation and cannot be reversed.
+              </p>
+              <Button
+                variant="danger"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="w-full sm:w-auto"
+              >
+                {deleting ? "Deleting..." : "Delete account"}
+              </Button>
             </div>
-          </div>
-
-          <hr className="my-6" />
-
-          <div>
-            <h2 className="text-sm font-semibold text-red-600 mb-2">
-              Danger Zone
-            </h2>
-            <p className="text-xs text-gray-500 mb-3">
-              Deleting your account will permanently remove all your reports
-              and chat history. This action cannot be undone.
-            </p>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={deleting}
-              className="w-full bg-red-50 text-red-600 py-2 rounded-md hover:bg-red-100 disabled:opacity-50 text-sm"
-            >
-              {deleting ? "Deleting..." : "Delete Account"}
-            </button>
-          </div>
+          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

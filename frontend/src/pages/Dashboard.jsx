@@ -3,6 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import Navbar from "../components/Navbar";
 import api from "../api/axios";
+import {
+  Button,
+  Card,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  StatusBadge,
+} from "../components/ui";
 
 export default function Dashboard() {
   const [reports, setReports] = useState([]);
@@ -68,175 +76,249 @@ export default function Dashboard() {
   const totalAbnormal = reports.reduce((sum, r) => sum + r.abnormal_count, 0);
   const criticalReports = reports.filter((r) => r.worst_severity === "critical").length;
 
-  const severityStyles = {
-    critical: { strip: "bg-red-500", badge: "bg-red-100 text-red-700" },
-    mild: { strip: "bg-orange-400", badge: "bg-orange-100 text-orange-700" },
-    normal: { strip: "bg-green-400", badge: "bg-green-100 text-green-700" },
-  };
+  const comparePrompt = selectedForCompare.length === 0
+    ? "Choose two reports to compare."
+    : selectedForCompare.length === 1
+      ? "Choose one more report."
+      : "Two reports selected and ready to compare.";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-mq-canvas">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Your Reports</h1>
-          <div className="flex gap-2">
-            {reports.length >= 2 && (
-              <button
-                onClick={toggleCompareMode}
-                className={`px-4 py-2 rounded-md font-medium border ${
-                  compareMode
-                    ? "bg-purple-600 text-white border-purple-600"
-                    : "bg-white text-purple-600 border-purple-300 hover:bg-purple-50"
-                }`}
-              >
-                {compareMode ? "Cancel Compare" : "⇄ Compare Reports"}
-              </button>
-            )}
-            <Link
-              to="/upload"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium"
-            >
-              + Upload New Report
+      <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
+        <PageHeader
+          title="Welcome to your health overview"
+          description="Review your uploaded reports, keep an eye on flagged values, and explore your results."
+          actions={
+            <Link to="/upload" className="mq-button mq-button--primary mq-button--md w-full sm:w-auto">
+              <span aria-hidden="true">+</span>
+              Upload report
             </Link>
-          </div>
-        </div>
+          }
+        />
 
-        {compareMode && (
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 flex justify-between items-center">
-            <p className="text-sm text-purple-800">
-              {selectedForCompare.length === 0 && "Select 2 reports to compare"}
-              {selectedForCompare.length === 1 && "Select 1 more report"}
-              {selectedForCompare.length === 2 && "Ready to compare!"}
-            </p>
-            <button
-              onClick={handleStartComparison}
-              disabled={selectedForCompare.length !== 2}
-              className="bg-purple-600 text-white px-4 py-1.5 rounded-md text-sm font-medium disabled:opacity-40"
-            >
-              Compare →
-            </button>
-          </div>
-        )}
-
-        {!loading && reports.length > 0 && !compareMode && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6 flex gap-8">
-            <div>
-              <p className="text-2xl font-bold">{reports.length}</p>
-              <p className="text-xs text-gray-500">Reports Analyzed</p>
-            </div>
-            <div className="border-l border-gray-200 pl-8">
-              <p className="text-2xl font-bold text-orange-600">{totalAbnormal}</p>
-              <p className="text-xs text-gray-500">Total Flagged Values</p>
-            </div>
-            {criticalReports > 0 && (
-              <div className="border-l border-gray-200 pl-8">
-                <p className="text-2xl font-bold text-red-600">{criticalReports}</p>
-                <p className="text-xs text-gray-500">Need Urgent Attention</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {loading && <p className="text-gray-500">Loading reports...</p>}
-
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {!loading && reports.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-16 text-center">
-            <div className="text-5xl mb-4">📋</div>
-            <h2 className="font-semibold text-lg mb-1">No reports yet</h2>
-            <p className="text-gray-500 text-sm mb-6">
-              Upload a lab report to get an instant AI breakdown of your results.
-            </p>
-            <Link
-              to="/upload"
-              className="bg-blue-600 text-white px-6 py-2.5 rounded-md hover:bg-blue-700 font-medium inline-block"
-            >
-              Upload Your First Report
-            </Link>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {reports.map((report) => {
-            const style = severityStyles[report.worst_severity] || severityStyles.normal;
-            const isSelected = selectedForCompare.includes(report.id);
-            return (
-              <div
-                key={report.id}
-                onClick={() => handleCardClick(report.id)}
-                className={`bg-white rounded-lg shadow-sm border overflow-hidden cursor-pointer transition-all ${
-                  isSelected
-                    ? "border-purple-500 ring-2 ring-purple-200"
-                    : "border-gray-100 hover:shadow-md hover:-translate-y-0.5"
-                }`}
-              >
-                <div className={`h-1.5 ${style.strip}`} />
-
-                <div className="p-5">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-semibold text-lg">{report.patient_name}</h3>
-                    {compareMode ? (
-                      <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs ${
-                        isSelected ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"
-                      }`}>
-                        {isSelected && "✓"}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={(e) => handleDelete(report.id, e)}
-                        className="text-gray-300 hover:text-red-500 text-sm leading-none"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-gray-400 mb-3 truncate">{report.filename}</p>
-
-                  {report.abnormal_count > 0 ? (
-                    <div className="mb-3">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${style.badge}`}>
-                        {report.abnormal_count} flagged
-                      </span>
-                      {report.top_abnormal && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Top concern:{" "}
-                          <span className="font-medium text-gray-700">
-                            {report.top_abnormal.test_name}
-                          </span>{" "}
-                          ({report.top_abnormal.status})
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700 mb-3 inline-block">
-                      All values normal
-                    </span>
-                  )}
-
-                  <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
-                    <p className="text-xs text-gray-400">
-                      {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
-                    </p>
-                    {!compareMode && (
-                      <span className="text-xs text-blue-600 font-medium">
-                        Open Chat →
-                      </span>
-                    )}
-                  </div>
+        {!loading && reports.length > 0 && (
+          <section className="mb-9" aria-label="Report overview">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Card className="flex items-center gap-4 p-5 sm:p-6">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-mq-primary/10 text-sm font-bold text-mq-primary" aria-hidden="true">
+                  R
                 </div>
+                <div>
+                  <p className="text-2xl font-bold tracking-tight text-mq-ink">{reports.length}</p>
+                  <p className="text-sm text-mq-muted">Reports analyzed</p>
+                </div>
+              </Card>
+
+              <Card className="flex items-center gap-4 p-5 sm:p-6">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-sm font-bold text-amber-800" aria-hidden="true">
+                  !
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tracking-tight text-mq-ink">{totalAbnormal}</p>
+                  <p className="text-sm text-mq-muted">Flagged values across reports</p>
+                </div>
+              </Card>
+
+              {criticalReports > 0 && (
+                <Card className="flex items-center gap-4 p-5 sm:p-6">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-50 text-sm font-bold text-red-800" aria-hidden="true">
+                    !
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold tracking-tight text-mq-ink">{criticalReports}</p>
+                    <p className="text-sm text-mq-muted">Reports with critical values</p>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </section>
+        )}
+
+        <section aria-labelledby="reports-heading">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="reports-heading" className="text-xl font-bold tracking-tight text-mq-ink sm:text-2xl">
+                Your reports
+              </h2>
+              <p className="mt-1 text-sm text-mq-muted">
+                {reports.length > 0
+                  ? `${reports.length} ${reports.length === 1 ? "report" : "reports"} in your library`
+                  : "Your uploaded reports will appear here."}
+              </p>
+            </div>
+
+            {reports.length >= 2 && (
+              <Button
+                variant={compareMode ? "primary" : "secondary"}
+                onClick={toggleCompareMode}
+                aria-pressed={compareMode}
+                className="w-full sm:w-auto"
+              >
+                {compareMode ? "Cancel comparison" : "Compare reports"}
+              </Button>
+            )}
+          </div>
+
+          {compareMode && (
+            <Card className="mb-5 flex flex-col gap-4 border-mq-primary/20 bg-mq-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div>
+                <p className="font-semibold text-mq-ink">Select reports to compare</p>
+                <p className="mt-0.5 text-sm text-mq-muted" aria-live="polite">
+                  {comparePrompt}
+                </p>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                <span className="text-sm text-mq-muted" aria-label={`${selectedForCompare.length} of 2 reports selected`}>
+                  {selectedForCompare.length} of 2 selected
+                </span>
+                <Button
+                  onClick={handleStartComparison}
+                  disabled={selectedForCompare.length !== 2}
+                  className="w-full sm:w-auto"
+                >
+                  Compare selected
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {loading && <LoadingState>Loading your reports...</LoadingState>}
+
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && reports.length === 0 && (
+            <div className="rounded-2xl border border-mq-border bg-white p-5 shadow-sm sm:p-8">
+              <EmptyState
+                title="Your report library is ready"
+                className="min-h-[13rem] border-0 px-3 py-6 shadow-none"
+              >
+                Upload a medical report to see its results and start a conversation about it.
+              </EmptyState>
+              <div className="flex justify-center pb-2">
+                <Link to="/upload" className="mq-button mq-button--primary mq-button--md w-full sm:w-auto">
+                  Upload your first report
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {!loading && reports.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {reports.map((report) => {
+                const isSelected = selectedForCompare.includes(report.id);
+                const severity = report.worst_severity || "normal";
+                const severityLabel = severity === "critical"
+                  ? "Critical values"
+                  : severity === "mild"
+                    ? "Flagged values"
+                    : "No flagged values";
+
+                return (
+                  <Card
+                    as="article"
+                    key={report.id}
+                    className={`flex min-w-0 flex-col overflow-hidden transition duration-150 hover:-translate-y-0.5 hover:shadow-md ${
+                      isSelected ? "border-mq-primary ring-2 ring-mq-primary/20" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleCardClick(report.id)}
+                      aria-pressed={compareMode ? isSelected : undefined}
+                      aria-label={compareMode
+                        ? `${isSelected ? "Deselect" : "Select"} report for ${report.patient_name || "Unknown patient"}, ${report.filename}`
+                        : `Open report for ${report.patient_name || "Unknown patient"}, ${report.filename}`}
+                      className="flex flex-1 cursor-pointer flex-col text-left focus-visible:z-10 focus-visible:outline-offset-[-3px]"
+                    >
+                      <div className={`h-1.5 w-full ${severity === "critical" ? "bg-red-600" : severity === "mild" ? "bg-amber-500" : "bg-emerald-600"}`} />
+
+                      <div className="flex flex-1 flex-col p-5 sm:p-6">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-mq-muted">
+                              {compareMode ? `Report ${isSelected ? "selected" : "available"}` : "Medical report"}
+                            </p>
+                            <h3 className="mt-1 truncate text-lg font-bold tracking-tight text-mq-ink">
+                              {report.patient_name || "Unknown patient"}
+                            </h3>
+                          </div>
+                          {compareMode ? (
+                            <span
+                              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold ${
+                                isSelected
+                                  ? "border-mq-primary bg-mq-primary text-white"
+                                  : "border-slate-300 bg-white text-transparent"
+                              }`}
+                              aria-hidden="true"
+                            >
+                              ✓
+                            </span>
+                          ) : (
+                            <span className="rounded-lg bg-mq-primary/10 px-2.5 py-1 text-xs font-semibold text-mq-primary">
+                              Open report
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-3 truncate text-sm text-mq-muted" title={report.filename}>
+                          {report.filename}
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                          <StatusBadge status={severity}>
+                            {severityLabel}
+                          </StatusBadge>
+                          <span className="text-sm text-mq-muted">
+                            {report.abnormal_count} flagged {report.abnormal_count === 1 ? "value" : "values"}
+                          </span>
+                        </div>
+
+                        {report.top_abnormal && (
+                          <div className="mt-4 rounded-lg bg-amber-50 px-3 py-2.5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+                              Top flagged result
+                            </p>
+                            <p className="mt-1 truncate text-sm font-semibold text-slate-800">
+                              {report.top_abnormal.test_name}
+                              <span className="ml-1.5 font-medium text-mq-muted">
+                                ({report.top_abnormal.status})
+                              </span>
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mt-auto pt-5 text-xs text-mq-muted">
+                          Added {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+                        </div>
+                      </div>
+                    </button>
+
+                    {!compareMode && (
+                      <div className="flex items-center justify-between gap-3 border-t border-mq-border bg-slate-50/70 px-5 py-3 sm:px-6">
+                        <span className="text-xs font-medium text-mq-muted">Report details</span>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          aria-label={`Delete report ${report.filename}`}
+                          onClick={(event) => handleDelete(report.id, event)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { Button, Card, TextInput } from "../components/ui";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -29,56 +30,41 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-2">MediQuery AI</h1>
-        <p className="text-gray-500 text-center mb-6">Login to your account</p>
+    <main className="flex min-h-screen items-center justify-center bg-mq-canvas px-4 py-10 sm:px-6">
+      <div className="w-full max-w-md">
+        <Link to="/" className="mq-brand mx-auto mb-7 w-fit transition-opacity duration-150 hover:opacity-80">
+          <span className="mq-brand__mark" aria-hidden="true">MQ</span>
+          <span>MediQuery</span>
+        </Link>
+        <Card className="p-6 sm:p-8">
+          <header className="mb-6 text-center">
+            <h1 className="text-2xl font-bold tracking-tight text-mq-ink">Welcome back</h1>
+            <p className="mb-0 mt-2 text-sm leading-6 text-mq-muted">Log in to continue exploring your reports.</p>
+          </header>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-800">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <TextInput id="login-email" label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <TextInput id="login-password" label="Password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+            <Button type="submit" disabled={loading} className="mt-1 w-full">
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            Register
-          </Link>
-        </p>
+          <p className="mb-0 mt-6 text-center text-sm text-mq-muted">
+            Don't have an account?{" "}
+            <Link to="/register" className="font-semibold text-mq-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mq-primary">
+              Register
+            </Link>
+          </p>
+        </Card>
       </div>
-    </div>
+    </main>
   );
 }
