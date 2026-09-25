@@ -19,3 +19,7 @@ app.include_router(chat.router)
 @app.get("/")
 def root():
     return {"message": "MediQuery AI API is running", "version": "2.0"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
